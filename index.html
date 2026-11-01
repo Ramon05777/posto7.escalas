@@ -38,7 +38,87 @@ const dk=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()),pd=s=>{
 const hash=s=>{let h=5381;for(const c of 'p7|'+s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return h.toString(36)};
 function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2600)}
 /* ===== FIREBASE: cole aqui o bloco do seu projeto (Passo a passo, etapa 4) ===== */
-const FIREBASE_CONFIG={apiKey:"COLE_AQUI",authDomain:"COLE_AQUI",projectId:"COLE_AQUI",storageBucket:"COLE_AQUI",messagingSenderId:"COLE_AQUI",appId:"COLE_AQUI"};
+const FIREBASE_CONFIG={apiKey:"// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);",authDomain:"// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);",projectId:"// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);",storageBucket:"// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);",messagingSenderId:"// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);",appId:"COLE_AQUI"};
 const DOMAIN='@posto7.app';
 let auth,fdb,subs=[],saveT=null,pend=null,hbT=null,hold=false,entering=false,dirtyR=false;
 db={logo:null,units:[],users:[],presence:[]};
@@ -52,7 +132,23 @@ async function flush(){const u=pend;if(!u||!fdb)return;try{await fdb.doc('units/
 function log(t){unit.history.unshift({at:Date.now(),by:me.user,text:t});unit.history.length=Math.min(unit.history.length,500);save()}
 function logoHTML(h){return db.logo?`<img src="${db.logo}" alt="Posto 7" style="height:${h}px">`:`<div class="brand-word">POSTO<span>7</span></div>`}
 function fbInit(){if(typeof firebase==='undefined'){$('lmsg').textContent='Não foi possível carregar o Firebase (verifique a internet).';return false}
- if(FIREBASE_CONFIG.apiKey==='COLE_AQUI'){$('lmsg').innerHTML='<b>Falta configurar o Firebase.</b> Cole o bloco firebaseConfig no início do script do index.html (veja o passo a passo).';return false}
+ if(FIREBASE_CONFIG.apiKey==='// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC0ZkFNXQRAwP7RSqJPJEXGGUaa-k-K3oo",
+  authDomain: "posto7-escalas.firebaseapp.com",
+  projectId: "posto7-escalas",
+  storageBucket: "posto7-escalas.firebasestorage.app",
+  messagingSenderId: "439162164613",
+  appId: "1:439162164613:web:11a0c37c1aab182b8da0ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);'){$('lmsg').innerHTML='<b>Falta configurar o Firebase.</b> Cole o bloco firebaseConfig no início do script do index.html (veja o passo a passo).';return false}
  firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();fdb=firebase.firestore();return true}
 /* ===== login / sessão ===== */
 async function doLogin(){const u=$('lu').value.trim(),p=$('lp').value;if(!u||!p)return toast('Informe usuário e senha.');try{await auth.signInWithEmailAndPassword(email(u),p)}catch(e){toast(errMsg(e))}}
