@@ -161,7 +161,7 @@ function loads(u,s,sh,skip){const G=new Int16Array(HZ),U=new Int16Array(HZ);for(
 function mc(G,U,p,type){let a=0,b=0;for(let i=0;i<HZ;i++){if(!p[i])continue;const g=G[i];a+=((g+1)**3-g**3)*(type==='5x2D'&&i%7===6?4:1);b+=2*(g+U[i])+1}return[a,b]}
 function pick(type,G,U,ok){let best=null;for(const x of cands(type)){if(ok&&!ok(x.c,x.p))continue;const[a,b]=mc(G,U,x.p,type);if(!best||a<best.a||(a===best.a&&b<best.b))best={x,a,b}}return best}
 /* a troca de regime só vale a partir de uma segunda-feira futura, depois de qualquer mês já finalizado; confere que a virada não cria folgas seguidas nem mais de 6 dias de trabalho */
-function nextMon(s,mode){const t=new Date();t.setHours(12,0,0,0);let ed=mode===2?new Date(t.getFullYear(),t.getMonth(),1,12):mode===1?addD(t,-((t.getDay()+6)%7)):addD(t,7-((t.getDay()+6)%7));let last='';(Array.isArray(s)?s:[s]).forEach(z=>Object.entries(z.scales||{}).forEach(([k,v])=>{if(v.finished&&k>last)last=k}));
+function nextMon(s,mode){const t=new Date();t.setHours(12,0,0,0);let ed=mode===3?t:mode===2?new Date(t.getFullYear(),t.getMonth(),1,12):mode===1?addD(t,-((t.getDay()+6)%7)):addD(t,7-((t.getDay()+6)%7));let last='';(Array.isArray(s)?s:[s]).forEach(z=>Object.entries(z.scales||{}).forEach(([k,v])=>{if(v.finished&&k>last)last=k}));
  if(last){const[y,m]=last.split('-').map(Number),f=addD(new Date(y,m,0,12),1),mon=mode?f:addD(f,mod(7-((f.getDay()+6)%7),7));if(mon>ed)ed=mon}return ed}
 function trans(f,e0,p,idx){if(!is5(f)||e0.ph==null)return true;const o=pat(f.type,e0.ph,e0.base,e0.fv,e0.tb);let prev=false,run=0;for(let i=idx-14;i<idx+28;i++){const v=i<idx?o[mod(i,HZ)]:p[mod(i,HZ)];if(v){if(prev&&i>=idx)return false;run=0}else if(++run>6&&i>=idx)return false;prev=!!v}return true}
 function applyC(f,c,from){const same=e=>(c.tb!==undefined?(c.tb||null)===(e.tb||null):true)&&(c.tb||c.ph==null||c.ph===e.ph)&&(!c.base||c.base===e.base)&&(c.tb||!c.fv||c.fv===e.fv);
@@ -170,10 +170,10 @@ function applyC(f,c,from){const same=e=>(c.tb!==undefined?(c.tb||null)===(e.tb||
 function clearOv(s,ms,from){const ids=new Set(ms.map(f=>f.id));Object.entries(s.scales||{}).forEach(([k,sc])=>{const[y,m]=k.split('-').map(Number);Object.keys(sc.ov||{}).forEach(o=>{const i=o.lastIndexOf('_');if(ids.has(o.slice(0,i))&&new Date(y,m-1,+o.slice(i+1),12)>=from)sc.ov[o]='N'})})}
 /* escolhe sozinho a melhor folga para UMA pessoa (cadastro novo, troca de tipo ou de turno) */
 function place(s,f,rev){if(!(is5(f)||cyc(f))||(cyc(f)&&f.fx))return null;const{G,U}=loads(unit,s,f.team,new Set([f])),fresh=!rev||(is5(f)&&f.ph==null&&!f.tb)||(cyc(f)&&!f.base);let ok=null,from=null,ed=null;
- if(!fresh){ed=nextMon(s);from=dk(ed);const idx=diff(ANCHOR,ed),e0=eff(f,addD(ed,-1));ok=(c,p)=>trans(f,e0,p,idx)}
+ if(!fresh){ed=nextMon(s,3);from=dk(ed);const idx=diff(ANCHOR,ed),e0=eff(f,addD(ed,-1));ok=(c,p)=>trans(f,e0,p,idx)}
  let r=(ok&&pick(f.type,G,U,ok))||pick(f.type,G,U);if(!r)return null;let c=r.x.c;
  if(is5(f)){const cap=capOf(s,f.team),it=mkItem(f,!fresh,fresh?0:diff(ANCHOR,ed),fresh?null:eff(f,addD(ed,-1)),G);it.cur=Math.max(0,it.list.indexOf(r.x));const sf=sfOf(s,f.team),Ef=enrg(addP(G,r.x.p),cap,sf)+(f.type==='5x2'?1e8:0),res=tabSolve([it],G,cap,hSeed(s.id+f.id),40000,sf);if(res&&res.E<Ef&&res.c[0].tb)c=res.c[0]}
- const ch=from&&c.tb?applyTrans(f,c.tb,ed):applyC(f,c,from);if(ch===null){c=r.x.c;if(applyC(f,c,from)&&from)clearOv(s,[f],ed)}else if(ch&&from)clearOv(s,[f],ed);save();return r}
+ let ch;if(from&&c.tb){const i0=diff(ANCHOR,ed),Lw=new Int16Array(TW);for(let j=0;j<TW;j++)Lw[j]=G[mod(i0+j,HZ)];const rr=chooseTrans([{f,tb:c.tb}],ed,Lw,capOf(s,f.team),sfOf(s,f.team))[0];if(rr.cur&&rr.cur!==rr.keep){f.rev=(f.rev||[]).filter(x=>x.from<from).concat(rr.cur.revs);ch=true}else if(rr.cur)ch=false;else ch=applyC(f,r.x.c,from)}else ch=applyC(f,c,from);if(ch&&from)clearOv(s,[f],ed);save();return r}
 /* ===== equipes: ordem de cadastro e rodízio de turno ===== */
 const teamKeys=s=>{const k=Object.keys(s.teams||{}),o=(s.torder||[]).filter(c=>k.includes(c));return o.concat(k.filter(c=>!o.includes(c)))};
 const ROTS={d:'diário',w:'semanal',m:'mensal'},minOf=(s,c)=>(s.minw&&s.minw[c])||0;
@@ -198,18 +198,28 @@ function initT(D){const T=new Uint8Array(TP);for(let w=0;w<12;w++){const pr=(D?w
 function mkItem(f,hasOld,idx,e0){const list=cands(f.type),D=f.type==='5x2D';let valid=list.map((_,i)=>i).filter(i=>!hasOld||trans(f,e0,list[i].p,idx));if(!valid.length)valid=list.map((_,i)=>i);
  const it={f,D,list,valid,cur:valid[0],idx,o:null,kind:is5(f)?'T':'C'};if(it.kind==='T')it.T=initT(D);return it}
 /* troca de regime para uma tabela: se a virada (a semana de transição) não encaixar, usa uma tabela de transição só nessa semana e depois a definitiva */
-function applyTrans(f,tb,ed0){const D=f.type==='5x2D',old=JSON.stringify(f.rev||[]),base=(f.rev||[]).filter(x=>x.from<dk(ed0));
- for(let k=0;k<14;k++){const ed=addD(ed0,k),from=dk(ed),idx=diff(ANCHOR,ed);f.rev=base.slice();const e0=eff(f,addD(ed,-1));
-  if(e0.tb===tb)break;const o=pat(f.type,e0.ph,e0.base,e0.fv,e0.tb),T=Uint8Array.from(tb,c=>+c),M=diff(ANCHOR,addD(ed,7-((ed.getDay()+6)%7)));
-  if(junc(o,T,idx,D)){f.rev.push({from,tb});break}
-  let ok=false;const t0=Math.floor(mod(idx,TP)/7)*7,t1=(t0+7)%TP,own=[];for(let d=0;d<7;d++)if(T[t1+d])own.push(d);const P2=[own,...PAIRS.filter(q=>q[0]!==own[0]||q[1]!==own[1])],M2=M+7;
-  for(const pr of PAIRS){for(const q of P2){const T1=Uint8Array.from(T);for(let d=0;d<7;d++){T1[t0+d]=d===pr[0]||d===pr[1]?1:0;T1[t1+d]=d===q[0]||d===q[1]?1:0}
-   if(junc(o,T,idx,D,T1,M2)){f.rev.push({from,tb:Array.from(T1,x=>x?'1':'0').join('')},{from:dk(addD(ed,M2-idx)),tb});ok=true;break}}if(ok)break}
-  if(ok)break;if(k===13){f.rev=JSON.parse(old);return null}}
- return JSON.stringify(f.rev)!==old}
-function enrg(L,cap,sf){sf=sf||0;let q=0,mw=0,ms=0,v=0;for(let i=0;i<HZ;i++){const x=L[i];q+=x*x;if(i%7===6){if(x>ms)ms=x}else if(x>mw)mw=x;const cp=i%7===6?Math.max(cap,sf):cap;if(x>cp)v+=x-cp}return 3000*Math.max(mw,ms-sf)+(sf?900:300)*ms+q+10000*v}
+/* ===== virada para a tabela: gera todas as formas válidas de trocar de regime e escolhe a que mantém o dia a dia mais equilibrado ===== */
+const TW=42;
+function winKeep(f,i0){const w=new Uint8Array(TW);for(let j=0;j<TW;j++){const dt=addD(ANCHOR,i0+j),e=eff(f,dt);w[j]=pat(f.type,e.ph,e.base,e.fv,e.tb)[mod(i0+j,HZ)]}return w}
+function transCands(f,tb,ed0){const D=f.type==='5x2D',bk=f.rev,base=(f.rev||[]).filter(x=>x.from<dk(ed0)),out=[],T=Uint8Array.from(tb,c=>+c),i0=diff(ANCHOR,ed0);f.rev=base;
+ try{for(let k=0;k<14;k++){const ed=addD(ed0,k),idx=i0+k,from=dk(ed),e0=eff(f,addD(ed,-1));
+  if(e0.tb===tb){if(!k){const w=new Uint8Array(TW);for(let j=0;j<TW;j++)w[j]=T[mod(i0+j,TP)];out.push({revs:[],win:w})}break}
+  const o=pat(f.type,e0.ph,e0.base,e0.fv,e0.tb),M=diff(ANCHOR,addD(ed,7-((ed.getDay()+6)%7))),M2=M+7,mk=(T1,revs)=>{const w=new Uint8Array(TW);for(let j=0;j<TW;j++){const i=i0+j;w[j]=i<idx?o[mod(i,HZ)]:(T1&&i<M2?T1:T)[mod(i,TP)]}out.push({revs,win:w})};
+  if(junc(o,T,idx,D))mk(null,[{from,tb}]);
+  const t0=Math.floor(mod(idx,TP)/7)*7,t1=(t0+7)%TP;
+  for(const pr of PAIRS)for(const q of PAIRS){const T1=Uint8Array.from(T);for(let d=0;d<7;d++){T1[t0+d]=d===pr[0]||d===pr[1]?1:0;T1[t1+d]=d===q[0]||d===q[1]?1:0}
+   if(junc(o,T,idx,D,T1,M2))mk(T1,[{from,tb:Array.from(T1,x=>x?'1':'0').join('')},{from:dk(addD(ed,M2-idx)),tb}])}}}
+ finally{f.rev=bk}
+ return out}
+function chooseTrans(list,ed0,Lw,cap,sf){const i0=diff(ANCHOR,ed0),capS=Math.max(cap,sf);
+ const cost=(w)=>{let c=0;for(let j=0;j<TW;j++){const x=Lw[j]+w[j],cp=mod(i0+j,7)===6?capS:cap;c+=x*x;if(x>cp)c+=5000*(x-cp)}return c};
+ const st=list.map(({f,tb})=>{const lim=dk(addD(ed0,TW-14)),keep=lastEff(f).tb===tb&&(f.rev||[]).every(r=>r.from<=lim)?{revs:null,win:winKeep(f,i0)}:null,cs=transCands(f,tb,ed0);return{f,keep,cs,cur:keep||cs[0]||null}});
+ st.forEach(r=>{if(r.cur)for(let j=0;j<TW;j++)Lw[j]+=r.cur.win[j]});
+ for(let pass=0;pass<3;pass++)st.forEach(r=>{if(!r.cur)return;for(let j=0;j<TW;j++)Lw[j]-=r.cur.win[j];let best=r.keep,bc=r.keep?cost(r.keep.win)-1:Infinity;r.cs.forEach(c=>{const v=cost(c.win);if(v<bc){bc=v;best=c}});r.cur=best||r.cs[0]||null;if(r.cur)for(let j=0;j<TW;j++)Lw[j]+=r.cur.win[j]});
+ return st}
+function enrg(L,cap,sf){sf=sf||0;let q=0,mw=0,ms=0,v=0;for(let i=0;i<HZ;i++){const x=L[i];q+=x*x;if(i%7===6){if(x>ms)ms=x}else if(x>mw)mw=x;const cp=i%7===6?Math.max(cap,sf):cap;if(x>cp)v+=x-cp}return 3000*Math.max(mw,ms-sf)+900*ms+q+10000*v}
 const addP=(L,p)=>{const x=Int16Array.from(L);for(let i=0;i<HZ;i++)x[i]+=p[i];return x},addPs=(L,ps)=>{const x=Int16Array.from(L);ps.forEach(p=>{for(let i=0;i<HZ;i++)x[i]+=p[i]});return x};
-const sfOf=(s,sh)=>Math.ceil((s.employees||[]).filter(f=>f.team===sh&&f.type==='5x2D').length/2+(s.employees||[]).filter(f=>f.team===sh&&f.type==='5x2').length/4-1e-9),capOf=(s,sh)=>{const m=minOf(s,sh);return m?(s.employees||[]).filter(f=>f.team===sh).length-m:Infinity};
+const sfOf=(s,sh)=>Math.ceil((s.employees||[]).filter(f=>f.team===sh&&f.type==='5x2D').length/2),capOf=(s,sh)=>{const m=minOf(s,sh);return m?(s.employees||[]).filter(f=>f.team===sh).length-m:Infinity};
 function tabSolve(items,L0,cap,seed,iters,sf){sf=sf||0;const capS=Math.max(cap,sf);let sd=(seed>>>0)||1;const rnd=()=>{sd=(Math.imul(sd,1664525)+1013904223)>>>0;return sd/4294967296};
  let top=items.length+4;for(let i=0;i<HZ;i++)if(L0[i]+items.length+4>top)top=L0[i]+items.length+4;
  const L=Int16Array.from(L0),cW=new Int32Array(top+2),cS=new Int32Array(top+2);let q=0,mW=0,mS=0,vi=0;
@@ -217,10 +227,14 @@ function tabSolve(items,L0,cap,seed,iters,sf){sf=sf||0;const capS=Math.max(cap,s
  const chg=(i,df)=>{const v=L[i],nv=v+df,S=i%7===6,c=S?cS:cW;q+=nv*nv-v*v;c[v]--;c[nv]++;const cp=S?capS:cap;if(nv>cp)vi+=nv-cp;if(v>cp)vi-=v-cp;
   if(S){if(nv>mS)mS=nv;else if(v===mS&&!c[v])while(mS>0&&!cS[mS])mS--}else{if(nv>mW)mW=nv;else if(v===mW&&!c[v])while(mW>0&&!cW[mW])mW--}L[i]=nv};
  const addT=(T,df)=>{for(let d=0;d<TP;d++)if(T[d])for(let k=0;k<7;k++)chg(d+TP*k,df)},addC=(p,df)=>{for(let i=0;i<HZ;i++)if(p[i])chg(i,df)};
- const E=()=>3000*Math.max(mW,mS-sf)+(sf?900:300)*mS+q+10000*vi;
+ const E=()=>3000*Math.max(mW,mS-sf)+900*mS+q+10000*vi;
  items.forEach(t=>t.kind==='T'?addT(t.T,1):addC(t.list[t.cur].p,1));
  const snap=()=>items.map(t=>t.kind==='T'?Uint8Array.from(t.T):t.cur);let bE=E(),best=snap();
  for(let it=0;it<iters;it++){const t=items[Math.floor(rnd()*items.length)],Tt=200*(1-it/iters)**2+3,E0=E();
+  if(t.kind==='T'&&items.length>1&&rnd()<.4){const u=items[Math.floor(rnd()*items.length)];if(u!==t&&u.kind==='T'){const w=Math.floor(rnd()*12),b=w*7,p1=PAIRS[Math.floor(rnd()*PAIRS.length)],p2=PAIRS[Math.floor(rnd()*PAIRS.length)],o1=t.T.slice(b,b+7),o2=u.T.slice(b,b+7),n1=new Uint8Array(7),n2=new Uint8Array(7);n1[p1[0]]=n1[p1[1]]=1;n2[p2[0]]=n2[p2[1]]=1;
+   t.T.set(n1,b);u.T.set(n2,b);if(!validT(t.T,t.D)||!validT(u.T,u.D)){t.T.set(o1,b);u.T.set(o2,b);continue}
+   const ap=df=>{for(let d=0;d<7;d++){const x=n1[d]-o1[d]+n2[d]-o2[d];if(x)for(let k=0;k<7;k++)chg(b+d+TP*k,x*df)}};ap(1);const E1=E();
+   if(E1<=E0||rnd()<Math.exp((E0-E1)/Tt)){if(E1<bE){bE=E1;best=snap()}}else{ap(-1);t.T.set(o1,b);u.T.set(o2,b)}continue}}
   if(t.kind==='T'){const w=Math.floor(rnd()*12),pr=PAIRS[Math.floor(rnd()*PAIRS.length)],b=w*7,old=t.T.slice(b,b+7),nw=new Uint8Array(7);nw[pr[0]]=nw[pr[1]]=1;let same=true;for(let d=0;d<7;d++)if(nw[d]!==old[d])same=false;if(same)continue;
    t.T.set(nw,b);if(!validT(t.T,t.D)||(t.o&&!junc(t.o,t.T,t.idx,t.D))){t.T.set(old,b);continue}
    const ap=df=>{for(let d=0;d<7;d++){const x=nw[d]-old[d];if(x)for(let k=0;k<7;k++)chg(b+d+TP*k,x*df)}};ap(1);const E1=E();
@@ -242,11 +256,11 @@ function anneal(items,L0,nAll,seedv,iters,T0){let sd=(seedv>>>0)||1;const rnd=()
 /* redistribui todo o grupo de uma vez (guloso + melhoria por trocas) */
 const curC=f=>{const e=lastEff(f);return is5(f)?{ph:e.ph==null?undefined:e.ph,fv:e.fv,tb:e.tb||null}:{base:e.base}};
 function snapSec(s,ed){const e={};(s.employees||[]).forEach(f=>{e[f.id]={ph:f.ph==null?null:f.ph,fv:f.fv==null?null:f.fv,tb:f.tb||null,base:f.base||null,fx:!!f.fx,rev:JSON.parse(JSON.stringify(f.rev||[]))}});const ov={},k0=ed.getFullYear()+'-'+pad(ed.getMonth()+1);Object.entries(s.scales||{}).forEach(([k,sc])=>{if(k>=k0&&sc.ov&&Object.keys(sc.ov).length)ov[k]=Object.assign({},sc.ov)});return{at:Date.now(),e,ov}}
-function undoRebal(){const s=sector;if(!s.undo||!confirm('Desfazer a última redistribuição deste setor e voltar as folgas como estavam antes?'))return;const u=s.undo;(s.employees||[]).forEach(f=>{const o=u.e[f.id];if(o){f.ph=o.ph;f.fv=o.fv;f.tb=o.tb;f.base=o.base;f.fx=o.fx;f.rev=JSON.parse(JSON.stringify(o.rev))}});
- Object.entries(s.scales||{}).forEach(([k,sc])=>{if(k<u.k0)return;const so=u.ov[k]||{};sc.ov=sc.ov||{};Object.keys(sc.ov).forEach(x=>{sc.ov[x]=so[x]!==undefined?so[x]:'N'});Object.entries(so).forEach(([x,v])=>sc.ov[x]=v)});
- s.undo=null;s.bal=s.bal||{};log('Desfez a última redistribuição ('+s.name+')');render();toast('Pronto: as folgas voltaram como estavam.')}
-function rebalance(secs,mode){const ed=nextMon(secs,mode),idx=diff(ANCHOR,ed),from=dk(ed),rep=[];let changed=0;
- for(const s of secs){if(s._ph)continue;s.undo=Object.assign(snapSec(s,ed),{k0:ed.getFullYear()+'-'+pad(ed.getMonth()+1)});if(JSON.stringify(s.undo).length>600000)s.undo=null;const shs=teamKeys(s).filter(c=>(s.employees||[]).some(f=>f.team===c&&(is5(f)||cyc(f))));
+function restoreSnap(s){const u=s.undo;if(!u)return;(s.employees||[]).forEach(f=>{const o=u.e[f.id];if(o){f.ph=o.ph;f.fv=o.fv;f.tb=o.tb;f.base=o.base;f.fx=o.fx;f.rev=JSON.parse(JSON.stringify(o.rev))}});
+ Object.entries(s.scales||{}).forEach(([k,sc])=>{if(k<u.k0)return;const so=u.ov[k]||{};sc.ov=sc.ov||{};Object.keys(sc.ov).forEach(x=>{sc.ov[x]=so[x]!==undefined?so[x]:'N'});Object.entries(so).forEach(([x,v])=>sc.ov[x]=v)});(u.fin||[]).forEach(k=>{if(s.scales&&s.scales[k])s.scales[k].finished=true});s.undo=null}
+function undoRebal(){const s=sector;if(!s.undo||!confirm('Desfazer a última redistribuição deste setor e voltar as folgas como estavam antes?'))return;restoreSnap(s);log('Desfez a última redistribuição ('+s.name+')');render();toast('Pronto: as folgas voltaram como estavam.')}
+function rebalance(secs,mode,reopen){const finMap=new Map(),k00=dk(new Date()).slice(0,7);if(reopen)secs.forEach(s=>{const l=[];Object.entries(s.scales||{}).forEach(([k,sc])=>{if(sc.finished&&k>=k00){l.push(k);sc.finished=false}});finMap.set(s,l)});const ed=nextMon(secs,mode),idx=diff(ANCHOR,ed),from=dk(ed),rep=[];let changed=0;
+ for(const s of secs){if(s._ph)continue;s.undo=Object.assign(snapSec(s,ed),{k0:ed.getFullYear()+'-'+pad(ed.getMonth()+1)});s.undo.fin=finMap.get(s)||[];if(JSON.stringify(s.undo).length>600000)s.undo=null;const shs=teamKeys(s).filter(c=>(s.employees||[]).some(f=>f.team===c&&(is5(f)||cyc(f))));
   for(const sh of shs){const all=(s.employees||[]).filter(f=>f.team===sh&&(is5(f)||cyc(f))),mem=all.filter(f=>!(cyc(f)&&f.fx)).sort((a,b)=>ORD.indexOf(a.type)-ORD.indexOf(b.type)),bef=gStats(s,sh);
    const{G:L,U}=loads(unit,s,sh,new Set(all));all.filter(f=>cyc(f)&&f.fx).forEach(f=>{const p=patOf(f);for(let i=0;i<HZ;i++)L[i]+=p[i]});
    const info=new Map(mem.map(f=>{const fresh=(is5(f)&&f.ph==null&&!f.tb)||(cyc(f)&&!f.base),e0=fresh?null:eff(f,addD(ed,-1));return[f,{fresh,ok:fresh?null:(c,p)=>trans(f,e0,p,idx)}]})),cur=new Map();
@@ -265,9 +279,13 @@ function rebalance(secs,mode){const ed=nextMon(secs,mode),idx=diff(ANCHOR,ed),fr
    if(mem.length){const fx=new Int16Array(HZ);all.filter(f=>cyc(f)&&f.fx).forEach(f=>{const p=patOf(f);for(let i=0;i<HZ;i++)fx[i]+=p[i]});
     const Ef=enrg(addPs(fx,mem.map(f=>cur.get(f).x.p)),cap,sf)+1e8*mem.filter(f=>f.type==='5x2').length,Ec=mem.every(f=>!info.get(f).fresh)?enrg(addPs(fx,mem.map(f=>patOf(f))),cap,sf)+1e8*mem.filter(f=>f.type==='5x2'&&!lastEff(f).tb).length:null;
     const items=mem.map(f=>{const n=info.get(f),it=mkItem(f,!n.fresh,idx,n.fresh?null:eff(f,addD(ed,-1)));it.cur=Math.max(0,it.list.indexOf(cur.get(f).x));return it});
-    const sd0=(mem.length*7919+sh.charCodeAt(0)*31+h32(s.id))>>>0,it0=Math.min(120000,25000+5000*mem.length);let res=tabSolve(items,fx,cap,sd0,it0,sf);if(mem.length<=30)for(let r=1;r<2;r++){const o=tabSolve(items,fx,cap,sd0+r*977,it0,sf);if(o.E<res.E)res=o}
-    if(res.E<Ef&&(Ec==null||res.E<Ec-1000))pickC=res.c;else if(Ec!=null&&Ec<=Ef+1000)pickC=mem.map(f=>curC(f))}
-   const moved=[];mem.forEach((f,i)=>{const n=info.get(f);let ch=!n.fresh&&pickC[i].tb?applyTrans(f,pickC[i].tb,ed):applyC(f,pickC[i],n.fresh?null:from);if(ch===null)ch=applyC(f,cur.get(f).x.c,from);if(ch){changed++;if(!n.fresh)moved.push(f)}});if(moved.length)clearOv(s,moved,ed);
+    const sd0=(mem.length*7919+sh.charCodeAt(0)*31+h32(s.id))>>>0,it0=mem.length<=16?100000:Math.min(120000,25000+5000*mem.length);let res=tabSolve(items,fx,cap,sd0,it0,sf);if(mem.length<=30)for(let r=1;r<(mem.length<=10?10:mem.length<=16?5:2);r++){const o=tabSolve(items,fx,cap,sd0+r*977,it0,sf);if(o.E<res.E)res=o}
+    if(res.E<Ef&&(Ec==null||res.E<Ec-2500))pickC=res.c;else if(Ec!=null&&Ec<=Ef+2500)pickC=mem.map(f=>curC(f))}
+   const moved=[],tl=[];mem.forEach((f,i)=>{const n=info.get(f);if(!n.fresh&&pickC[i].tb){tl.push({f,tb:pickC[i].tb});return}if(applyC(f,pickC[i],n.fresh?null:from)){changed++;if(!n.fresh)moved.push(f)}});
+   if(tl.length){const i0=diff(ANCHOR,ed),Lw=new Int16Array(TW);all.forEach(f=>{if(tl.some(x=>x.f===f)||!(is5(f)||cyc(f)))return;const w=winKeep(f,i0);for(let j=0;j<TW;j++)Lw[j]+=w[j]});
+    chooseTrans(tl,ed,Lw,cap,sf).forEach(r=>{const f=r.f;if(r.cur&&r.cur!==r.keep){const old=JSON.stringify(f.rev||[]);f.rev=(f.rev||[]).filter(x=>x.from<from).concat(r.cur.revs);if(JSON.stringify(f.rev)!==old){changed++;moved.push(f)}}else if(!r.cur&&applyC(f,cur.get(f).x.c,from)){changed++;moved.push(f)}})}if(moved.length)clearOv(s,moved,ed);
+   {const mn=minOf(s,sh),em=(s.employees||[]).filter(f=>f.team===sh),bad=()=>{let b=0;for(let i=0;i<42;i++){const x=addD(ed,i);if(x.getDay()&&em.filter(f=>!vacInfo(f.id,x)&&!isOff(f,s,x)).length<mn)b++}return b};
+    if(mn&&bad()){const b0=JSON.stringify(s.scales||{});clearOv(s,em.filter(f=>is5(f)||cyc(f)),ed);if(JSON.stringify(s.scales||{})!==b0)changed++}}
    s.bal=s.bal||{};s.bal[sh]=gSig(s,sh);rep.push({sector:s.name,sh,bef,aft:gStats(s,sh)})}}
  save();return{ed,rep,changed}}
 const phAny=(s,f)=>place(s,f,false);
@@ -312,9 +330,14 @@ function balPanel(s){const all=teamKeys(s).filter(c=>(s.employees||[]).some(f=>f
   let st='';if(mn){const cap=tot-mn,ns=need(s,c),sh0=Math.ceil(ns-7*cap-1e-9);
    if(sh0>0)st=`<span class="w">⚠ Não fecha: faltam ${sh0} folga(s)/semana. Passe ${sh0} pessoa(s) para 6x1 ou contrate ${Math.ceil(sh0/5)}.</span>`;
    else{const bad=[];for(let d=1;d<=nd;d++){const x=new Date(y,m,d,12);if(!x.getDay()||x<td)continue;if(emp.filter(f=>!vacInfo(f.id,x)&&!isOff(f,s,x)).length<mn)bad.push(d)}
-    st=bad.length?`<span class="w">⚠ ${bad.length} dia(s) abaixo do mínimo (dia ${bad.slice(0,4).join(', ')}${bad.length>4?'…':''}) → clique em ⚖ Redistribuir</span>`:`<span style="color:#1d6b3a">✓ Seg–sáb sempre com ${mn} ou mais</span>`}}
+    st=bad.length?`<span class="w" style="cursor:pointer" onclick="whyBad('${esc(c)}')">⚠ ${bad.length} dia(s) abaixo do mínimo (dia ${bad.slice(0,4).join(', ')}${bad.length>4?'…':''})${scaleOf(s,y,m).finished?' · este mês está FINALIZADO, por isso não é alterado: ⚖ Redistribuir → Reabrir':' → clique aqui para ver o motivo'}</span>`:`<span style="color:#1d6b3a">✓ Seg–sáb sempre com ${mn} ou mais</span>`}}
   return`<span style="border-left-color:${sh[2]};background:${sh[1]}66"><b>${esc(s.teams[c])}</b> · ${tot} pessoas · mínimo trabalhando <input type="number" min="0" max="${tot}" value="${mn||''}" placeholder="—" style="width:52px" onchange="setMin('${esc(c)}',this.value)"> ${st}</span>`}).join('');
  return`<div class="bal">${h}${s.undo?`<button class="secondary" onclick="undoRebal()">↩ Desfazer última redistribuição (${new Date(s.undo.at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})})</button>`:''}</div>`}
+/* motivo de cada dia abaixo do mínimo: quem está de folga e por quê */
+function whyBad(c){const s=sector,[y,m]=sm(),nd=new Date(y,m+1,0).getDate(),mn=minOf(s,c),emp=(s.employees||[]).filter(f=>f.team===c),td=new Date();td.setHours(0,0,0,0);const rows=[];
+ for(let d=1;d<=nd;d++){const x=new Date(y,m,d,12);if(!x.getDay()||x<td)continue;const off=[];let w=0;emp.forEach(f=>{const v=vacInfo(f.id,x);if(v){off.push(f.name+' (férias)');return}if(isOff(f,s,x)){const o=is5(f)?scaleOf(s,y,m).ov[f.id+'_'+d]:null;off.push(f.name+(o==='F'?' (folga marcada à mão)':is5(f)||cyc(f)?' (escala)':' (lançada à mão)'))}else w++});
+  if(w<mn)rows.push(`<div class="row" style="display:block;border-bottom:1px solid #ddd;padding:6px 0"><b>Dia ${d} (${DAYS[x.getDay()]})</b>: ${w} trabalhando, mínimo ${mn}.<br><small>De folga: ${off.join(', ')||'ninguém'}</small></div>`)}
+ modal(`<h2>Dias abaixo do mínimo · ${esc(s.teams[c])}</h2>${rows.join('')||'<p>Nenhum dia abaixo do mínimo.</p>'}<p class="hint">"(escala)" = folga da escala automática · "(folga marcada à mão)" = ajuste manual · "(férias)" = férias. Ajustes manuais e férias não são mexidos pelo sistema; use ⚖ Redistribuir para refazer a escala automática.</p><div class="actions"><button class="primary" onclick="closeM()">Fechar</button></div>`)}
 /* ===== equipes: ordem e rodízio de turno ===== */
 function teamsModal(){const s=sector,ks=teamKeys(s);modal(`<h2>Equipes de ${esc(s.name)}</h2><p class="hint">A ordem abaixo é a ordem em que as equipes aparecem na escala. O turno é <b>fixo</b> por padrão; escolha um rodízio se a equipe troca de turno (Manhã → Tarde → Noite).</p>`+ks.map((c,i)=>{const r=s.rot&&s.rot[c];return`<div class="row" style="gap:6px"><div style="flex:1"><b>${esc(c)} · ${esc(s.teams[c])}</b></div><button class="ghost" ${i?'':'disabled'} onclick="moveTeam('${esc(c)}',-1)">▲</button><button class="ghost" ${i<ks.length-1?'':'disabled'} onclick="moveTeam('${esc(c)}',1)">▼</button><select onchange="setRot('${esc(c)}',this.value)"><option value="">Turno fixo</option>${Object.entries(ROTS).map(([k,v])=>`<option value="${k}" ${r&&r.m===k?'selected':''}>Rodízio ${v}</option>`).join('')}</select></div>`}).join('')+`<div class="field" style="margin-top:12px"><label>Nova equipe</label><div class="fr"><input id="ntc" style="max-width:70px" placeholder="Cód."><input id="ntn" placeholder="Nome da equipe"><button class="secondary" onclick="addTeamTo()">Adicionar</button></div></div><div class="actions"><button class="primary" onclick="closeM();render()">Concluir</button></div>`)}
 function moveTeam(c,d){const s=sector,k=teamKeys(s),i=k.indexOf(c),j=i+d;if(j<0||j>=k.length)return;[k[i],k[j]]=[k[j],k[i]];s.torder=k;log('Reordenou as equipes de '+s.name);save();teamsModal()}
@@ -324,11 +347,14 @@ function setRot(c,mode){const s=sector,t=new Date();t.setHours(12,0,0,0);
  else{const fr=mode==='d'?t:mode==='w'?addD(t,-((t.getDay()+6)%7)):new Date(t.getFullYear(),t.getMonth(),1,12);s.rot=s.rot||{};s.rot[c]={m:mode,from:dk(fr)}}
  log(`Turno da equipe ${s.teams[c]} (${s.name}): ${mode?'rodízio '+ROTS[mode]:'fixo'}`);save();teamsModal()}
 function addTeamTo(){const c=$('ntc').value.trim(),n=$('ntn').value.trim().toUpperCase();if(!c||!n)return toast('Informe o código e o nome da equipe.');if(sector.teams[c])return toast('Já existe uma equipe com esse código.');sector.torder=teamKeys(sector);sector.teams[c]=n;sector.torder.push(c);log('Adicionou a equipe '+n+' em '+sector.name);save();teamsModal()}
-function rebalModal(all){const secs=all?unit.sectors.filter(x=>!x._ph):[sector],e0=nextMon(secs,0),e2=nextMon(secs,2);modal(`<h2>Redistribuir folgas</h2><p>O sistema refaz as folgas ${all?'de <b>todos os setores</b>':'do setor <b>'+esc(sector.name)+'</b>'} para folgar o mínimo de gente por dia. <b>Se não ficar bom, dá para desfazer.</b></p><div class="field"><label>Aplicar</label><select id="rbm"><option value="2" selected>No mês aberto, desde ${fmt(e2)} (recomendado)</option><option value="0">Só a partir de ${fmt(e0)} (próxima segunda)</option></select></div><p class="hint">Meses finalizados nunca mudam. Folgas ajustadas à mão nas pessoas alteradas são refeitas.</p><div class="actions"><button class="secondary" onclick="closeM()">Cancelar</button><button class="primary" onclick="runRebal(${all?1:0},+$('rbm').value)">Redistribuir</button></div>`)}
-async function runRebal(all,mode){const secs=all?unit.sectors.filter(x=>!x._ph):[sector];closeM();const tot={ch:0,ed:null},nap=()=>new Promise(r=>setTimeout(r,30));
- try{for(let i=0;i<secs.length;i++){toast(`Redistribuindo as folgas… setor ${i+1} de ${secs.length} (${secs[i].name}). Aguarde.`);await nap();const r=rebalance([secs[i]],mode);tot.ch+=r.changed;tot.ed=tot.ed&&tot.ed<r.ed?tot.ed:r.ed}
-  log(`Redistribuiu as folgas (${secs.map(x=>x.name).join(', ')}) a partir de ${fmt(tot.ed)}`);render();toast(tot.ch?'Folgas redistribuídas. Se não gostar, use "↩ Desfazer".':'As folgas já estavam na melhor distribuição.')}
- catch(e){console.error(e);render();toast('Erro ao redistribuir: '+e.message)}}
+const lockedM=secs=>{const k00=dk(new Date()).slice(0,7),set=new Set();secs.forEach(s=>Object.entries(s.scales||{}).forEach(([k,sc])=>{if(sc.finished&&k>=k00)set.add(k)}));return[...set].sort().map(k=>{const[y,m]=k.split('-').map(Number);return MONTHS[m-1]+'/'+y})};
+function rebalModal(all){const secs=all?unit.sectors.filter(x=>!x._ph):[sector],e3=nextMon(secs,3),e2=nextMon(secs,2);modal(`<h2>Redistribuir folgas</h2><p>O sistema refaz as folgas ${all?'de <b>todos os setores</b>':'do setor <b>'+esc(sector.name)+'</b>'} para folgar o mínimo de gente por dia. <b>Se não ficar bom, dá para desfazer.</b></p><div class="field"><label>Aplicar</label><select id="rbm"><option value="3" selected>A partir de hoje, ${fmt(e3)} (recomendado)</option><option value="2">Desde o início do mês, ${fmt(e2)} (também refaz os dias que já passaram)</option></select></div>${(()=>{const L=lockedM(secs);return L.length?`<div class="field" style="background:#fff3cd;border-radius:8px;padding:10px"><b>⚠ Meses finalizados: ${L.join(', ')}.</b><br>O sistema não altera meses finalizados, por isso nada mudaria neles.<br><label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" id="rbo" checked> Reabrir esses meses para redistribuir (dá para finalizar de novo depois, e o ↩ Desfazer fecha-os de novo)</label></div>`:''})()}<p class="hint">Meses anteriores ao atual nunca mudam. Folgas ajustadas à mão nas pessoas alteradas são refeitas.</p><div class="actions"><button class="secondary" onclick="closeM()">Cancelar</button><button class="primary" onclick="runRebal(${all?1:0},+$('rbm').value,!!($('rbo')&&$('rbo').checked))">Redistribuir</button></div>`)}
+async function runRebal(all,mode,reopen){const secs=all?unit.sectors.filter(x=>!x._ph):[sector];closeM();const tot={ch:0,ed:null,fail:[]},nap=()=>new Promise(r=>setTimeout(r,30));
+ for(let i=0;i<secs.length;i++){toast(`Redistribuindo as folgas… setor ${i+1} de ${secs.length} (${secs[i].name}). Aguarde.`);await nap();
+  try{const r=rebalance([secs[i]],mode,reopen);tot.ch+=r.changed;tot.ed=tot.ed&&tot.ed<r.ed?tot.ed:r.ed}
+  catch(e){console.error(e);try{restoreSnap(secs[i])}catch(_){}tot.fail.push(secs[i].name+' ('+e.message+')')}}
+ if(tot.ed)log(`Redistribuiu as folgas (${secs.map(x=>x.name).join(', ')}) a partir de ${fmt(tot.ed)}`);render();
+ toast(tot.fail.length?'Não foi possível redistribuir: '+tot.fail.join('; ')+'. Esse setor ficou como estava.':tot.ch?'Folgas redistribuídas. Se não gostar, use "↩ Desfazer".':lockedM(secs).length&&!reopen?'Nada mudou porque os meses estão FINALIZADOS. Repita e marque "Reabrir esses meses".':'Nada precisou mudar: as folgas já estão na melhor distribuição possível.')}
 function vSched(){const[y,m]=sm(),sc=scaleOf(sector,y,m);
  return topb(esc(sector.name),`<button class="ghost" onclick="go('home')">← Setores</button><div class="month"><button onclick="mo--;render()">‹</button><strong>${MONTHS[m]} ${y}</strong><button onclick="mo++;render()">›</button></div><button class="primary" onclick="empModal()">+ Funcionário</button><button class="secondary" onclick="rebalModal(false)">⚖ Redistribuir folgas</button><button class="secondary" onclick="teamsModal()">👥 Equipes</button><button class="secondary" onclick="finish(${!sc.finished})">${sc.finished?'✎ Editar':'✓ Finalizar'}</button><button class="secondary" onclick="pvSched()">🖨️ Pré-visualizar A4</button>`)+legend()+balPanel(sector)+`<div class="wrap"><table>${tbl(sector,y,m,false)}</table><p class="hint">${sc.finished?'Escala finalizada.':'Folgas 5x2 automáticas (2 folgas separadas, que avançam 2 dias a cada semana). 5x2 dominical: 1 domingo de folga a cada 14 dias, nunca em dias seguidos. Clique numa célula 5x2 para abrir exceção pontual. Demais tipos: digite livremente.'}</p></div>`}
 function cell(k,v){const[y,m]=sm(),sc=scaleOf(sector,y,m);v=v.trim();if((sc.cells[k]||'')===v)return;sc.cells[k]=v;save();logOnce('c'+sector.id+'_'+y+m,`Editou célula da escala ${sector.name} ${MONTHS[m]}/${y}`)}
